@@ -142,11 +142,8 @@ public class InAppBrowser extends CordovaPlugin {
                                 Method iuw = Config.class.getMethod("isUrlWhiteListed", String.class);
                                 shouldAllowNavigation = (Boolean)iuw.invoke(null, url);
                             } catch (NoSuchMethodException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             } catch (IllegalAccessException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             } catch (InvocationTargetException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             }
                         }
                         if (shouldAllowNavigation == null) {
@@ -156,11 +153,8 @@ public class InAppBrowser extends CordovaPlugin {
                                 Method san = pm.getClass().getMethod("shouldAllowNavigation", String.class);
                                 shouldAllowNavigation = (Boolean)san.invoke(pm, url);
                             } catch (NoSuchMethodException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             } catch (IllegalAccessException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             } catch (InvocationTargetException e) {
-                                Log.d(LOG_TAG, e.getLocalizedMessage());
                             }
                         }
                         // load in webview
@@ -371,15 +365,17 @@ public class InAppBrowser extends CordovaPlugin {
      * Closes the dialog
      */
     public void closeDialog() {
+        final InAppBrowser _this = this;
+
         this.cordova.getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 final WebView childView = inAppWebView;
-                // The JS protects against multiple calls, so this should happen only when
-                // closeDialog() is called by other native code.
-                if (childView == null) {
-                    return;
-                }
+        // The JS protects against multiple calls, so this should happen only when
+        // closeDialog() is called by other native code.
+        if (childView == null) {
+            return;
+        }
 
                 childView.setWebViewClient(new WebViewClient() {
                     // NB: wait for about:blank before dismissing
@@ -388,6 +384,12 @@ public class InAppBrowser extends CordovaPlugin {
                             dialog.dismiss();
                             dialog = null;
                         }
+
+                        childView.destroy();
+
+                        if (_this.inAppWebView == childView) {
+                            _this.inAppWebView = null;
+                        }
                     }
                 });
                 // NB: From SDK 19: "If you call methods on WebView from any thread
@@ -395,14 +397,14 @@ public class InAppBrowser extends CordovaPlugin {
                 // http://developer.android.com/guide/webapps/migrating.html#Threads
                 childView.loadUrl("about:blank");
 
-                try {
-                    JSONObject obj = new JSONObject();
-                    obj.put("type", EXIT_EVENT);
-                    sendUpdate(obj, false);
-                } catch (JSONException ex) {
-                    Log.d(LOG_TAG, "Should never happen");
-                }
-            }
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("type", EXIT_EVENT);
+            sendUpdate(obj, false);
+        } catch (JSONException ex) {
+            Log.d(LOG_TAG, "Should never happen");
+        }
+    }
         });
     }
 
@@ -412,6 +414,8 @@ public class InAppBrowser extends CordovaPlugin {
     public void goBack() {
         if (this.inAppWebView.canGoBack()) {
             this.inAppWebView.goBack();
+        } else {
+            this.closeDialog();
         }
     }
 
@@ -579,15 +583,11 @@ public class InAppBrowser extends CordovaPlugin {
                 Resources activityRes = cordova.getActivity().getResources();
                 int backResId = activityRes.getIdentifier("ic_action_previous_item", "drawable", cordova.getActivity().getPackageName());
                 Drawable backIcon = activityRes.getDrawable(backResId);
-                if (Build.VERSION.SDK_INT >= 16)
-                    back.setBackground(null);
-                else
-                    back.setBackgroundDrawable(null);
+                back.setBackground(null);
                 back.setImageDrawable(backIcon);
                 back.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 back.setPadding(0, this.dpToPixels(10), 0, this.dpToPixels(10));
-                if (Build.VERSION.SDK_INT >= 16)
-                    back.getAdjustViewBounds();
+                back.getAdjustViewBounds();
 
                 back.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
@@ -604,15 +604,11 @@ public class InAppBrowser extends CordovaPlugin {
                 forward.setId(Integer.valueOf(3));
                 int fwdResId = activityRes.getIdentifier("ic_action_next_item", "drawable", cordova.getActivity().getPackageName());
                 Drawable fwdIcon = activityRes.getDrawable(fwdResId);
-                if (Build.VERSION.SDK_INT >= 16)
-                    forward.setBackground(null);
-                else
-                    forward.setBackgroundDrawable(null);
+                forward.setBackground(null);
                 forward.setImageDrawable(fwdIcon);
                 forward.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 forward.setPadding(0, this.dpToPixels(10), 0, this.dpToPixels(10));
-                if (Build.VERSION.SDK_INT >= 16)
-                    forward.getAdjustViewBounds();
+                forward.getAdjustViewBounds();
 
                 forward.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
@@ -652,15 +648,11 @@ public class InAppBrowser extends CordovaPlugin {
                 close.setId(Integer.valueOf(5));
                 int closeResId = activityRes.getIdentifier("ic_action_remove", "drawable", cordova.getActivity().getPackageName());
                 Drawable closeIcon = activityRes.getDrawable(closeResId);
-                if (Build.VERSION.SDK_INT >= 16)
-                    close.setBackground(null);
-                else
-                    close.setBackgroundDrawable(null);
+                close.setBackground(null);
                 close.setImageDrawable(closeIcon);
                 close.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 back.setPadding(0, this.dpToPixels(10), 0, this.dpToPixels(10));
-                if (Build.VERSION.SDK_INT >= 16)
-                    close.getAdjustViewBounds();
+                close.getAdjustViewBounds();
 
                 close.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v) {
@@ -938,7 +930,7 @@ public class InAppBrowser extends CordovaPlugin {
                 Log.d(LOG_TAG, "Should never happen");
             }
         }
-
+        
         /**
          * On received http auth request.
          */
@@ -951,28 +943,23 @@ public class InAppBrowser extends CordovaPlugin {
                 Method gpm = webView.getClass().getMethod("getPluginManager");
                 pluginManager = (PluginManager)gpm.invoke(webView);
             } catch (NoSuchMethodException e) {
-                Log.d(LOG_TAG, e.getLocalizedMessage());
             } catch (IllegalAccessException e) {
-                Log.d(LOG_TAG, e.getLocalizedMessage());
             } catch (InvocationTargetException e) {
-                Log.d(LOG_TAG, e.getLocalizedMessage());
             }
-
+            
             if (pluginManager == null) {
                 try {
                     Field pmf = webView.getClass().getField("pluginManager");
                     pluginManager = (PluginManager)pmf.get(webView);
                 } catch (NoSuchFieldException e) {
-                    Log.d(LOG_TAG, e.getLocalizedMessage());
                 } catch (IllegalAccessException e) {
-                    Log.d(LOG_TAG, e.getLocalizedMessage());
                 }
             }
-
+            
             if (pluginManager != null && pluginManager.onReceivedHttpAuthRequest(webView, new CordovaHttpAuthHandler(handler), host, realm)) {
                 return;
             }
-
+            
             // By default handle 401 like we'd normally do!
             super.onReceivedHttpAuthRequest(view, handler, host, realm);
         }
